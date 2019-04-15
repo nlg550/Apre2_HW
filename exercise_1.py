@@ -1,5 +1,6 @@
 import random
 
+import math
 import matplotlib.pyplot as plt
 from sklearn import datasets
 import numpy as np
@@ -9,29 +10,23 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def sigmoid_partial(x):
-    return sigmoid(x) * (1 - sigmoid(x))
+def linear(x):
+    return x
 
 
-def tanh_partial(x):
-    return 1 - np.tanh(x) ** 2
+def linear_quadratic(labels, prediction, features):
+    # calculates these formulas by hand
+    return (labels - prediction) * features.T
 
 
-def sigmoid_quadratic(target, prediction, net):
-    # print("sigmoid(net)", sigmoid(net))
-    return (target - prediction) * sigmoid(net) * (1 - sigmoid(net))
+def sigmoid_quadratic(labels, prediction, features):
+    # calculates these formulas by hand
+    return (labels - prediction) * prediction * (1 - prediction) * features.T
 
 
-def tanh_quadratic(target, prediction, net):
-    return (target - prediction) * tanh_partial(net)
-
-
-def sigmoid_entropy(target, prediction, net):
-    return target / prediction * sigmoid_partial(net) + (1 - target) / (1 - prediction) * sigmoid_partial(net)
-
-
-def tanh_entropy(target, prediction, net):
-    return target / prediction * tanh_partial(net) + (1 - target) / (1 - prediction) * tanh_partial(net)
+def sigmoid_entropy(labels, prediction, features):
+    # calculates these formulas by hand
+    return labels * (1 - prediction) - (1 - labels) * prediction
 
 
 class Neuron:
@@ -44,21 +39,21 @@ class Neuron:
         """
         if act_f == "sigmoid":
             self.activation_function = sigmoid
-        elif act_f == "tanh":
-            self.activation_function = np.tanh
+        elif act_f == "linear":
+            self.activation_function = linear
 
         self.learning_rate = learning_rate
 
         if error_cost_type == "quadratic":
             if act_f == "sigmoid":
                 self.error_cost = sigmoid_quadratic
-            elif act_f == "tanh":
-                self.error_cost = tanh_quadratic
+            elif act_f == "linear":
+                self.error_cost = linear_quadratic
+
         elif error_cost_type == "cross_entropy":
             if act_f == "sigmoid":
                 self.error_cost = sigmoid_entropy
-            elif act_f == "tanh":
-                self.error_cost = tanh_entropy
+
         self.weights_matrix = weights
 
     def predict(self, input):
@@ -68,70 +63,146 @@ class Neuron:
         :param w: Weights matrix
         :return: output value
         """
+
         net = np.dot(input, self.weights_matrix)
         return self.activation_function(net)
 
-    def train(self, x, target, iterations):
-        x_size = x.shape[1]
+    def cost_function(self, features, labels):
+        # FIXME: This is where the evaluations will be perform. Right now is the cross entropy error this needs to be ignored
+        observations = len(labels)
 
-        MSE_output = []
-        MSE = 0
-        for iteration in range(iterations):
-            MSE = 0
-            print("Epoch ---> ", iteration)
-            for i, iter_x in enumerate(x):
-                yp = self.predict(iter_x)
+        predictions = self.predict(features)
 
-                if yp != target[i]:
-                    net = np.dot(self.weights_matrix, iter_x)
-                    error = self.error_cost(target[i], yp, net)
-                    self.weights_matrix += self.learning_rate * error
+        # Take the error when label=1
+        class1_cost = labels * (1 - predictions)
 
-                MSE += (yp - target[i])**2
+        # Take the error when label=0
+        class2_cost = (1 - labels) * predictions
 
-            MSE_output.append(MSE/x_size)
-        return MSE_output
+        # Take the sum of both costs
+        cost = class1_cost - class2_cost
+
+        # Take the average cost
+        cost = cost.sum()
+        return cost
+
+    def update_weights(self, features, labels):
+        N = len(features)
+
+        # 1 - Get Predictions
+        predictions = self.predict(features)
+
+        gradient = self.error_cost(labels, predictions, features)
+        gradient = gradient.sum()
+        # 3 Take the average cost derivative for each feature
+        gradient /= N
+
+        # 4 - Multiply the gradient by our learning rate
+        gradient *= self.learning_rate
+
+        # 5 - Subtract from our weights to minimize cost
+        self.weights_matrix -= gradient
+
+    def train(self, features, labels, iters):
+        cost_history = []
+
+        for i in range(iters):
+            print("Epoch -> ", i)
+            self.update_weights(features, labels)
+
+            # Calculate error for auditing purposes
+            cost = self.cost_function(features, labels)
+            cost_history.append(cost)
+
+        return cost_history
+
+
+def decision_boundary(prob):
+    return 1 if prob >= .5 else 0
+
+
+def classifier(predictions):
+    '''
+    input  - N element array of predictions between 0 and 1
+    output - N element array of 0s (False) and 1s (True)
+    '''
+    decision_boundary = np.vectorize(decision_boundary)
+    return decision_boundary(predictions).flatten()
+
+
+def accuracy(predicted_labels, actual_labels):
+    diff = predicted_labels - actual_labels
+    return 1.0 - (float(np.count_nonzero(diff)) / len(diff))
 
 
 def first_question():
-    train_inputs = np.array([[0, 0, 1], [1, 1, 1], [1, 0, 1], [0, 1, 1]])
-    train_outputs = np.array([[0, 1, 1, 0]]).T
-    weights = np.ones(train_inputs.shape[1])
+    epochs = 300
+    X = np.array([[0, 0, 1], [1, 1, 1], [1, 0, 1], [0, 1, 1]])
+    y = np.array([[0, 1, 1, 0]])
 
+    # Initialization of Weights
+    weights = np.array([random.random() for _ in range(X.shape[1])])
+
+    # Compare cost functions
+    # # Neuron with h = sigmoid and cost functions -> quadratic
     neuron = Neuron(0.1, weights)
-    MSE = neuron.train(train_inputs, train_outputs, 100)
+    cost = neuron.train(X, y, epochs)
 
-    plt.plot(np.arange(0, len(MSE), 1), MSE)
-    plt.show()
+    # # Neuron with cost function -> entropy
+    neuron = Neuron(0.1, weights, error_cost_type="cross_entropy")
+    cost2 = neuron.train(X, y, epochs)
+
+    plt.figure()
+    plt.plot(np.arange(0, len(cost), 1), cost)
+    plt.plot(np.arange(0, len(cost2), 1), cost2)
+    plt.savefig("cost_functions.png")
+
+    # Compare Initializations
+    # # Neuron with h = sigmoid and cost functions -> quadratic
+    neuron = Neuron(0.1, weights)
+    cost = neuron.train(X, y, epochs)
+
+    weights = np.ones(X.shape[1])
+    neuron = Neuron(0.1, weights)
+    cost2 = neuron.train(X, y, epochs)
+
+    plt.figure()
+    plt.plot(np.arange(0, len(cost), 1), cost)
+    plt.plot(np.arange(0, len(cost2), 1), cost2)
+    plt.savefig("initialization.png")
 
 
 def second_question():
-    # Question 2
+    epochs = 300
+
     iris = datasets.load_iris()
     X = iris.data[:, :2]  # we only take the first two features.
-    y = (iris["target"] == 2).astype(np.int).T  # 1 if Iris-Virginica, else 0
+    y = (iris["target"] == 2).astype(np.int)  # 1 if Iris-Virginica, else 0
 
-    # Initialization
+    # Initialization of Weights
     weights = np.array([random.random() for _ in range(X.shape[1])])
-    print(weights)
-    # weights = np.ones(X.shape[1])
+
+    # Activation function: linear    Error function: Quadratic
+    neuron = Neuron(0.1, weights, act_f="linear")
+    cost = neuron.train(X, y, epochs)
+
+    # Activation function: sigmoid   Error function: Quadratic
     neuron = Neuron(0.1, weights)
-    MSE = neuron.train(X, y, 100)
+    cost2 = neuron.train(X, y, epochs)
 
-    print("Predict", neuron.predict(np.array([[5.1, 3.5]])))
+    # Activation function: sigmoid   Error function: Cross Enropy
+    neuron = Neuron(0.1, weights, error_cost_type="cross_entropy")
+    cost3 = neuron.train(X, y, epochs)
 
-    plt.plot(np.arange(0, len(MSE), 1), MSE)
-    plt.ylabel("MSE")
-    plt.xlabel("epcoch")
-    plt.show()
+    plt.figure()
+    plt.plot(np.arange(0, len(cost), 1), cost)
+    # plt.plot(np.arange(0, len(cost2), 1), cost2)
+    # plt.plot(np.arange(0, len(cost3), 1), cost3)
+    plt.savefig("iris.png")
 
-    # This is how you would do it in sklearn
-    # from sklearn.linear_model import LogisticRegression
-    #
-    # log_reg = LogisticRegression()
-    # log_reg.fit(X, y)
-    # print("Size y:", len(y))
-    # print("Predict:", log_reg.predict(X[:len(y), :]))
+    # probabilities = neuron.predict(X).flatten()
+    # classifications = classifier(probabilities)
+    # our_acc = accuracy(classifications, y.flatten())
 
 
 if __name__ == "__main__":
