@@ -6,6 +6,7 @@ from sklearn import datasets
 import numpy as np
 
 
+# ================ ACTIVATION FUNCTIONS ================
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
@@ -14,6 +15,7 @@ def linear(x):
     return x
 
 
+# ================ ERROR COST FUNCTIONS ================
 def linear_quadratic(labels, prediction):
     # calculates these formulas by hand
     return labels - prediction
@@ -28,6 +30,10 @@ def sigmoid_entropy(labels, prediction):
     # calculates these formulas by hand
     return labels * (1 - prediction) - (1 - labels) * prediction
 
+
+#
+# ================ NEURON IMPLEMENTATION ================
+#
 
 class Neuron:
     def __init__(self, learning_rate, weights, act_f="sigmoid", error_cost_type="quadratic"):
@@ -69,22 +75,27 @@ class Neuron:
 
     def cost_function(self, features, labels):
         # FIXME: This is where the evaluations will be perform. Right now is the cross entropy error this needs to be ignored
-        observations = len(labels)
+        # observations = len(labels)
 
         predictions = self.predict(features)
 
         # Take the error when label=1
-        class1_cost = labels * (1 - predictions)
+        # class1_cost = labels * (1 - predictions)
 
         # Take the error when label=0
-        class2_cost = (1 - labels) * predictions
+        # class2_cost = (1 - labels) * predictions
 
         # Take the sum of both costs
-        cost = class1_cost - class2_cost
+        # cost = class1_cost - class2_cost
 
         # Take the average cost
-        cost = cost.sum()
-        return cost
+        # cost = cost.sum()
+        # print(cost)
+        # return(cost)
+
+        classifications = classifier(predictions)
+
+        return -self.error_cost(labels, predictions[1:]).sum(), accuracy(classifications, labels)
 
     # def update_weights(self, features, labels):
     #     N = len(features)
@@ -123,23 +134,26 @@ class Neuron:
         :param labels: The corresponding labels
         :param iters: The number of iterations (epochs)
         """
-        # cost_history = []
+        cost_history = []
+        acc_history = []
 
         for i in range(iters):
-            print("Epoch -> ", i)
+            # print("Epoch -> ", i)
             for input, answer in zip(features, labels):
                 self.update_weights(input, answer)
 
-        #     # Calculate error for auditing purposes
-        #     cost = self.cost_function(features, labels)
-        #     cost_history.append(cost)
-        #
-        # return cost_history
+            # Calculate error for auditing purposes
+            cost, acc = self.cost_function(features, labels)
+            cost_history.append(cost)
+            acc_history.append(acc)
+
+        return cost_history, acc_history
 
 
 def classifier(predictions):
     def decision_boundary(prob):
         return 1 if prob > .5 else 0
+
     '''
     input  - N element array of predictions between 0 and 1
     output - N element array of 0s (False) and 1s (True)
@@ -151,7 +165,6 @@ def classifier(predictions):
 def accuracy(predicted_labels, actual_labels):
     diff = predicted_labels[1:] - actual_labels
     return 1.0 - (float(np.count_nonzero(diff)) / len(diff))
-
 
 # def first_question():
 #     epochs = 500
@@ -191,31 +204,64 @@ def accuracy(predicted_labels, actual_labels):
 
 
 def second_question():
+    def validation_set(X, y, percentage):
+        """
+        Creates the validation set from the dataset
+        :param X: features
+        :param y: labels
+        :param percentage: percentage of the validation set from the training set
+        :return: training set features and labels
+        """
+        total = y.shape[0]
+        size = total * percentage
+        start = random.randint(1, total - size)
+        end = int(start + size)
+        # print("start", start)
+        # print("end", end)
+        test_set_y = y[start:end]
+        test_set_X = X[start:end]
+        # print("input", X.shape)
+        # print("answer", y.shape)
+        # print("test size", test_set_y.shape)
+        # print("test set", test_set_y)
+        # print("test size", test_set_X.shape)
+        # print("test set", test_set_X)
+
+        X = np.concatenate((X[:start], X[end:]), axis=0)
+        y = np.concatenate((y[:start], y[end:]), axis=0)
+        # print(X.shape)
+        # print(size)
+        return test_set_X, test_set_y, X, y
+
     epochs = 300
 
+    # ================ DATA SET ================
     iris = datasets.load_iris()
     X = iris.data[:, :2]  # we only take the first two features.
+    y = (iris["target"] == 2).astype(np.int)  # 1 if Iris-Virginica, else 0
+    test_X, test_y, X, y = validation_set(X, y, 0.1)
+
     bias = np.ones(X.shape[1])
     X = np.vstack((bias, X))
-    y = (iris["target"] == 2).astype(np.int)  # 1 if Iris-Virginica, else 0
 
+    # ================ INITIALIZATION ================
     # Initialization of Weights
-    weights = np.ones(X.shape[1]+1)
-    print(weights)
-    # weights = np.array([random.random() for _ in range(X.shape[1])])
+    # weights = np.ones(X.shape[1]+1)
+    weights = np.array([random.random() for _ in range(X.shape[1] + 1)])
+    # print(weights)
 
+    # ================ EVALUATION ================
     # Activation function: linear    Error function: Quadratic
     neuron = Neuron(0.01, weights, act_f="linear")
-    neuron.train(X, y, epochs)
+    cost, acc = neuron.train(X, y, epochs)
     probabilities = neuron.predict(X).flatten()
     classifications = classifier(probabilities)
     our_acc = accuracy(classifications, y.flatten())
     print(our_acc)
 
-
     # Activation function: sigmoid   Error function: Quadratic
     neuron = Neuron(0.01, weights)
-    neuron.train(X, y, epochs)
+    cost2, acc2 = neuron.train(X, y, epochs)
     probabilities = neuron.predict(X).flatten()
     classifications = classifier(probabilities)
     our_acc = accuracy(classifications, y.flatten())
@@ -223,12 +269,42 @@ def second_question():
 
     # Activation function: sigmoid   Error function: Cross Enropy
     neuron = Neuron(0.01, weights, error_cost_type="cross_entropy")
-    neuron.train(X, y, epochs)
+    cost3, acc3 = neuron.train(X, y, epochs)
     probabilities = neuron.predict(X).flatten()
     classifications = classifier(probabilities)
     our_acc = accuracy(classifications, y.flatten())
     print(our_acc)
 
+    plt.figure()
+    plt.ylabel('Cost')
+    plt.xlabel('Epoch')
+    plt.plot(np.arange(0, len(cost), 1), cost)
+
+    plt.figure()
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.plot(np.arange(0, len(acc), 1), acc)
+
+    plt.figure()
+    plt.ylabel('Cost')
+    plt.xlabel('Epoch')
+    plt.plot(np.arange(0, len(cost2), 1), cost2)
+
+    plt.figure()
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.plot(np.arange(0, len(acc2), 1), acc2)
+
+    plt.figure()
+    plt.ylabel('Cost')
+    plt.xlabel('Epoch')
+    plt.plot(np.arange(0, len(cost3), 1), cost3)
+
+    plt.figure()
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.plot(np.arange(0, len(acc3), 1), acc3)
+    # plt.savefig("iris.png")
 
     # plt.figure()
     # plt.plot(np.arange(0, len(cost), 1), cost)
