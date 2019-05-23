@@ -43,14 +43,14 @@ model.add(tf.keras.layers.Dense(4, activation = "softmax"))
 model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics = ['accuracy'])
 
 #========================= Training =========================#
-epochs = 20
+epochs = 5
  
 steps_per_epoch = train_gen.n // batch_size
 val_steps = validation_gen.n // batch_size
 test_steps = test_gen.n // batch_size
 
 history = model.fit(train_gen, steps_per_epoch = steps_per_epoch, epochs = epochs, validation_data = validation_gen, validation_steps = val_steps)
- 
+
 acc = history.history['acc']
 val_acc = history.history['val_acc']
  
