@@ -43,7 +43,7 @@ model.add(tf.keras.layers.Dense(4, activation = "softmax"))
 model.compile(optimizer = "adam", loss = "categorical_crossentropy", metrics = ['accuracy'])
 
 #========================= Training =========================#
-epochs = 5
+epochs = 35
  
 steps_per_epoch = train_gen.n // batch_size
 val_steps = validation_gen.n // batch_size
@@ -59,17 +59,20 @@ val_loss = history.history['val_loss']
  
 plt.figure(figsize = (8, 8))
 plt.subplot(2, 1, 1)
+plt.title("No Regularization")
 plt.plot(acc, label = 'Training Accuracy')
 plt.plot(val_acc, label = 'Validation Accuracy')
 plt.legend(loc = 'lower right')
 plt.ylabel('Accuracy')
-plt.ylim([min(plt.ylim()), 1])
+plt.xlabel("Epochs")
+plt.ylim([min(plt.ylim()), 1.1])
 
 plt.subplot(2, 1, 2)
 plt.plot(loss, label = 'Training Loss')
 plt.plot(val_loss, label = 'Validation Loss')
-plt.legend(loc = 'lower right')
+plt.legend(loc = 'upper right')
 plt.ylabel('Loss')
+plt.xlabel("Epochs")
 plt.ylim([0, max(plt.ylim())])
 plt.show()
 
