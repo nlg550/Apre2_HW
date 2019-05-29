@@ -71,7 +71,7 @@ def create_cnn(img_shape, regularization=False, initialize=''):
 
         model.add(tf.keras.layers.Dense(1024,
                                         activation=tf.nn.relu, kernel_initializer=initializer,
-                                        kernel_regularizer=tf.keras.regularizers.l1(0.001)))
+                                        kernel_regularizer=tf.keras.regularizers.l2(0.001)))
         model.add(tf.keras.layers.Dropout(rate=0.3))
         model.add(tf.keras.layers.Dense(512,
                                         activation=tf.nn.relu, kernel_initializer=initializer,
