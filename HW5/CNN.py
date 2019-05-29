@@ -125,7 +125,7 @@ def plot_results(history, title):
     plt.ylim([0, max(plt.ylim())])
     title = os.path.join(os.curdir, "plots\\latest\\"+title)
     plt.savefig(title)
-    plt.show()
+    # plt.show()
 
 
 def test(model, test_gen, batch_size):
@@ -167,5 +167,48 @@ if __name__ == "__main__":
     test(model, test_gen, batch_size)
     create_confusion_matrix(test_gen)
     plot_results(history, "Ones Initialization")
+    f_output.close()
 
+    output_filename = "zeros_output"
+    output_filename = os.path.join(os.curdir, "plots\\latest\\" + output_filename)
+    f_output = open(output_filename, "w")
+    train_gen, validation_gen, test_gen, batch_size, img_shape = generate_data_set()
+    model = create_cnn(img_shape, regularization=True, initialize='zeros')
+    model, history = train(model, train_gen, validation_gen, batch_size, n_epoch=20)
+    test(model, test_gen, batch_size)
+    create_confusion_matrix(test_gen)
+    plot_results(history, "Zeros Initialization")
+    f_output.close()
+
+    output_filename = "xavier_output"
+    output_filename = os.path.join(os.curdir, "plots\\latest\\" + output_filename)
+    f_output = open(output_filename, "w")
+    train_gen, validation_gen, test_gen, batch_size, img_shape = generate_data_set()
+    model = create_cnn(img_shape, regularization=True, initialize='xavier')
+    model, history = train(model, train_gen, validation_gen, batch_size, n_epoch=20)
+    test(model, test_gen, batch_size)
+    create_confusion_matrix(test_gen)
+    plot_results(history, "Xavier Initialization")
+    f_output.close()
+
+    output_filename = "no_regularization_output"
+    output_filename = os.path.join(os.curdir, "plots\\latest\\" + output_filename)
+    f_output = open(output_filename, "w")
+    train_gen, validation_gen, test_gen, batch_size, img_shape = generate_data_set()
+    model = create_cnn(img_shape, regularization=False, initialize='')
+    model, history = train(model, train_gen, validation_gen, batch_size, n_epoch=20)
+    test(model, test_gen, batch_size)
+    create_confusion_matrix(test_gen)
+    plot_results(history, "No Regularization")
+    f_output.close()
+
+    output_filename = "regularization_output"
+    output_filename = os.path.join(os.curdir, "plots\\latest\\" + output_filename)
+    f_output = open(output_filename, "w")
+    train_gen, validation_gen, test_gen, batch_size, img_shape = generate_data_set()
+    model = create_cnn(img_shape, regularization=True, initialize='')
+    model, history = train(model, train_gen, validation_gen, batch_size, n_epoch=20)
+    test(model, test_gen, batch_size)
+    create_confusion_matrix(test_gen)
+    plot_results(history, "Regularization")
     f_output.close()
