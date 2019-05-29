@@ -1,4 +1,5 @@
 import os
+import tensorflow as tf
 
 # Move to the corrrect folder and merge multiple types of the same fruit
 # base_dir = os.path.curdir
