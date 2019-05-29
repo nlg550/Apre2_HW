@@ -10,7 +10,7 @@ array([[140,   0,   0,  24],
 
 
 Classification Report
-'                precision    recall  f1-score   support
+                 precision    recall  f1-score   support
 
 Apple Braeburn       0.97      0.85      0.91       164
        Avocado       1.00      0.45      0.62       143

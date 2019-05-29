@@ -2,12 +2,13 @@ Test Acc:0.2244898
 Test Loss:1.3919963230330679
 
 Confusion Matrix
+ENTRIES['Apple Braeburn', 'Avocado', 'Banana', 'Lemon']
 array([[  0, 164,   0,   0],
        [  0, 143,   0,   0],
        [  0, 166,   0,   0],
        [  0, 164,   0,   0]], dtype=int64)
+
 Classification Report
-ENTRIES['Apple Braeburn', 'Avocado', 'Banana', 'Lemon']
 '                precision    recall  f1-score   support
 
 Apple Braeburn       0.00      0.00      0.00       164
